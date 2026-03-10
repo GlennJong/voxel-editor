@@ -1,0 +1,5 @@
+{
+  "name": "Voxel Editor",
+  "description": "A simple 3D voxel editor built with three.js and React Three Fiber. Allows adding, removing, and coloring blocks with undo/redo functionality.",
+  "requestFramePermissions": []
+}
