@@ -1,0 +1,10 @@
+# Ignore dependencies
+node_modules/
+
+# Ignore build artifacts
+dist/
+coverage/
+
+# Misc
+.DS_Store
+*.log

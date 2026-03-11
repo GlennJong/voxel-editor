@@ -1,12 +1,13 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
-import { BlockDef, Voxel, CustomColor, SavedProgress, VoxelMode } from './types';
+import {
+  BlockDef,
+  Voxel,
+  CustomColor,
+  SavedProgress,
+  VoxelMode,
+} from './types';
 import { STANDARD_BLOCKS, initialVoxels, LOCAL_STORAGE_KEY } from './constants';
 import { calculateParts, exportToOBJ, exportPartsList } from './utils';
 import { useHistory } from './hooks/useHistory';
@@ -27,49 +28,92 @@ function getInitialVoxels(): Voxel[] {
 }
 
 export default function App() {
-  const { state: voxels, set: setVoxels, undo, redo, reset, canUndo, canRedo } = useHistory<Voxel[]>(getInitialVoxels);
+  const {
+    state: voxels,
+    set: setVoxels,
+    undo,
+    redo,
+    reset,
+    canUndo,
+    canRedo,
+  } = useHistory<Voxel[]>(getInitialVoxels);
   const [mode, setMode] = useState<VoxelMode>('cube');
   const [currentColor, setCurrentColor] = useState<string>('#4285F4');
   const [zoom, setZoom] = useState(15);
   const [customBlocks, setCustomBlocks] = useState<BlockDef[]>([]);
-  const [selectedBlocks, setSelectedBlocks] = useState<string[]>(['1x1x1', '2x1x1', '2x2x1']);
+  const [selectedBlocks, setSelectedBlocks] = useState<string[]>([
+    '1x1x1',
+    '2x1x1',
+    '2x2x1',
+  ]);
   const [customDim, setCustomDim] = useState({ x: 3, y: 1, z: 1 });
+  const [previewState, setPreviewState] = useState(() => {
+    try {
+      const saved = localStorage.getItem('voxel_editor_preview_state');
+      if (saved) return JSON.parse(saved);
+    } catch (e) { }
+    return {
+      right: true,
+      left: false,
+      top: true,
+      bottom: false,
+      front: true,
+      back: false,
+    };
+  });
 
   const [customColors, setCustomColors] = useState<CustomColor[]>(() => {
     try {
       const saved = localStorage.getItem('voxel_editor_custom_colors');
       if (saved) return JSON.parse(saved);
-    } catch (e) {}
+    } catch (e) { }
     return [];
   });
 
-  const [savedProgresses, setSavedProgresses] = useState<SavedProgress[]>(() => {
-    try {
-      const saved = localStorage.getItem('voxel_editor_saved_progresses');
-      if (saved) return JSON.parse(saved);
-    } catch (e) {}
-    return [];
-  });
+  const [savedProgresses, setSavedProgresses] = useState<SavedProgress[]>(
+    () => {
+      try {
+        const saved = localStorage.getItem('voxel_editor_saved_progresses');
+        if (saved) return JSON.parse(saved);
+      } catch (e) { }
+      return [];
+    },
+  );
 
-  const [editingProgressId, setEditingProgressId] = useState<string | null>(null);
+  const [editingProgressId, setEditingProgressId] = useState<string | null>(
+    null,
+  );
   const [editingProgressName, setEditingProgressName] = useState('');
 
   useEffect(() => {
-    localStorage.setItem('voxel_editor_custom_colors', JSON.stringify(customColors));
+    localStorage.setItem(
+      'voxel_editor_custom_colors',
+      JSON.stringify(customColors),
+    );
   }, [customColors]);
 
   useEffect(() => {
-    localStorage.setItem('voxel_editor_saved_progresses', JSON.stringify(savedProgresses));
+    localStorage.setItem(
+      'voxel_editor_saved_progresses',
+      JSON.stringify(savedProgresses),
+    );
   }, [savedProgresses]);
+
+  useEffect(() => {
+    localStorage.setItem(
+      'voxel_editor_preview_state',
+      JSON.stringify(previewState),
+    );
+  }, [previewState]);
 
   const saveProgress = () => {
     const newProgress: SavedProgress = {
       id: `save-${Date.now()}`,
       name: `Save ${new Date().toLocaleString()}`,
       timestamp: Date.now(),
-      voxels: [...voxels]
+      voxels: [...voxels],
     };
-    setSavedProgresses(prev => [newProgress, ...prev]);
+    setSavedProgresses((prev) => [newProgress, ...prev]);
   };
 
   const applyProgress = (progress: SavedProgress) => {
@@ -77,46 +121,82 @@ export default function App() {
   };
 
   const removeProgress = (id: string) => {
-    setSavedProgresses(prev => prev.filter(p => p.id !== id));
+    setSavedProgresses((prev) => prev.filter((p) => p.id !== id));
   };
 
   const saveProgressName = (id: string) => {
     if (editingProgressName.trim()) {
-      setSavedProgresses(prev => prev.map(p => p.id === id ? { ...p, name: editingProgressName.trim() } : p));
+      setSavedProgresses((prev) =>
+        prev.map((p) =>
+          p.id === id ? { ...p, name: editingProgressName.trim() } : p,
+        ),
+      );
     }
     setEditingProgressId(null);
   };
 
-  const allBlocks = useMemo(() => [...STANDARD_BLOCKS, ...customBlocks], [customBlocks]);
+  const allBlocks = useMemo(
+    () => [...STANDARD_BLOCKS, ...customBlocks],
+    [customBlocks],
+  );
 
   const toggleBlock = (id: string) => {
-    setSelectedBlocks(prev => 
-      prev.includes(id) ? prev.filter(b => b !== id) : [...prev, id]
+    setSelectedBlocks((prev) =>
+      prev.includes(id) ? prev.filter((b) => b !== id) : [...prev, id],
     );
   };
 
   const addCustomBlock = () => {
-    const dims = [customDim.x, customDim.y, customDim.z].sort((a, b) => b - a) as [number, number, number];
+    const dims = [customDim.x, customDim.y, customDim.z].sort(
+      (a, b) => b - a,
+    ) as [number, number, number];
     const name = `${dims[0]}x${dims[1]}x${dims[2]}`;
     const id = `custom-${name}-${Date.now()}`;
-    
-    // Prevent duplicates
-    if (allBlocks.some(b => b.name === name)) return;
 
-    setCustomBlocks(prev => [...prev, { id, dims, name, isCustom: true }]);
-    setSelectedBlocks(prev => [...prev, id]);
+    // Prevent duplicates
+    if (allBlocks.some((b) => b.name === name)) return;
+
+    setCustomBlocks((prev) => [...prev, { id, dims, name, isCustom: true }]);
+    setSelectedBlocks((prev) => [...prev, id]);
   };
 
   const removeCustomBlock = (id: string) => {
-    setCustomBlocks(prev => prev.filter(b => b.id !== id));
-    setSelectedBlocks(prev => prev.filter(b => b !== id));
+    setCustomBlocks((prev) => prev.filter((b) => b.id !== id));
+    setSelectedBlocks((prev) => prev.filter((b) => b !== id));
   };
 
-  const partsList = useMemo(() => calculateParts(voxels, selectedBlocks, allBlocks), [voxels, selectedBlocks, allBlocks]);
+  const partsList = useMemo(
+    () => calculateParts(voxels, selectedBlocks, allBlocks),
+    [voxels, selectedBlocks, allBlocks],
+  );
 
   useEffect(() => {
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(voxels));
   }, [voxels]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if an input is focused
+      if (
+        document.activeElement instanceof HTMLInputElement ||
+        document.activeElement instanceof HTMLTextAreaElement
+      ) {
+        return;
+      }
+
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) {
+          redo();
+        } else {
+          undo();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [undo, redo]);
 
   const exportData = () => {
     const objData = exportToOBJ(voxels);
@@ -139,26 +219,26 @@ export default function App() {
   };
 
   return (
-    <div 
+    <div
       className="w-full h-screen bg-stone-100 relative overflow-hidden font-sans"
       onContextMenu={(e) => e.preventDefault()}
     >
-      <Canvas camera={{ position: [5, 5, 5], fov: 50 }}>
+      <Canvas flat camera={{ position: [5, 5, 5], fov: 50 }}>
         <color attach="background" args={['#f5f5f4']} />
-        <ambientLight intensity={0.6} />
-        <directionalLight position={[10, 10, 10]} intensity={0.8} castShadow />
-        <directionalLight position={[-10, -10, -10]} intensity={0.3} />
-        <OrbitControls 
-          makeDefault 
-          minDistance={2} 
-          maxDistance={50} 
+        <ambientLight intensity={1} />
+        <directionalLight position={[10, 10, 10]} intensity={0.9} castShadow />
+        <directionalLight position={[-10, -10, -10]} intensity={0.4} />
+        <OrbitControls
+          makeDefault
+          minDistance={2}
+          maxDistance={50}
           onChange={(e) => {
             if (e?.target) {
               setZoom(130 / e.target.getDistance());
             }
           }}
         />
-        
+
         <Voxels
           voxels={voxels}
           setVoxels={setVoxels}
@@ -199,19 +279,78 @@ export default function App() {
         exportData={exportData}
         canUndo={canUndo}
         canRedo={canRedo}
+        previewState={previewState}
+        setPreviewState={setPreviewState}
       />
 
       {/* Previews */}
       <div className="absolute bottom-6 right-6 flex gap-4 pointer-events-none">
-        <div className="pointer-events-auto">
-          <PreviewCanvas voxels={voxels} position={[20, 0, 0]} title="X-AXIS (RIGHT)" zoom={zoom} customColors={customColors} />
-        </div>
-        <div className="pointer-events-auto">
-          <PreviewCanvas voxels={voxels} position={[0, 20, 0]} title="Y-AXIS (TOP)" zoom={zoom} customColors={customColors} />
-        </div>
-        <div className="pointer-events-auto">
-          <PreviewCanvas voxels={voxels} position={[0, 0, 20]} title="Z-AXIS (FRONT)" zoom={zoom} customColors={customColors} />
-        </div>
+        {previewState.right && (
+          <div className="pointer-events-auto">
+            <PreviewCanvas
+              voxels={voxels}
+              position={[20, 0, 0]}
+              title="X-AXIS (RIGHT)"
+              zoom={zoom}
+              customColors={customColors}
+            />
+          </div>
+        )}
+        {previewState.left && (
+          <div className="pointer-events-auto">
+            <PreviewCanvas
+              voxels={voxels}
+              position={[-20, 0, 0]}
+              title="X-AXIS (LEFT)"
+              zoom={zoom}
+              customColors={customColors}
+            />
+          </div>
+        )}
+        {previewState.top && (
+          <div className="pointer-events-auto">
+            <PreviewCanvas
+              voxels={voxels}
+              position={[0, 20, 0]}
+              title="Y-AXIS (TOP)"
+              zoom={zoom}
+              customColors={customColors}
+            />
+          </div>
+        )}
+        {previewState.bottom && (
+          <div className="pointer-events-auto">
+            <PreviewCanvas
+              voxels={voxels}
+              position={[0, -20, 0]}
+              title="Y-AXIS (BOTTOM)"
+              zoom={zoom}
+              customColors={customColors}
+            />
+          </div>
+        )}
+        {previewState.front && (
+          <div className="pointer-events-auto">
+            <PreviewCanvas
+              voxels={voxels}
+              position={[0, 0, 20]}
+              title="Z-AXIS (FRONT)"
+              zoom={zoom}
+              customColors={customColors}
+            />
+          </div>
+        )}
+        {previewState.back && (
+          <div className="pointer-events-auto">
+            <PreviewCanvas
+              voxels={voxels}
+              position={[0, 0, -20]}
+              title="Z-AXIS (BACK)"
+              zoom={zoom}
+              customColors={customColors}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

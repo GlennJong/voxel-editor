@@ -16,11 +16,11 @@ export type SavedProgress = {
   voxels: Voxel[];
 };
 
-export type BlockDef = { 
-  id: string; 
-  dims: [number, number, number]; 
-  name: string; 
-  isCustom?: boolean 
+export type BlockDef = {
+  id: string;
+  dims: [number, number, number];
+  name: string;
+  isCustom?: boolean;
 };
 
-export type VoxelMode = 'cube' | 'color' | 'parts' | 'saves';
+export type VoxelMode = 'cube' | 'color' | 'parts' | 'saves' | 'preview';

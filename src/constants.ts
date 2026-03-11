@@ -3,11 +3,19 @@ import { BlockDef, Voxel } from './types';
 export const LOCAL_STORAGE_KEY = 'voxel_editor_state';
 
 export const initialVoxels: Voxel[] = [
-  { id: '1', position: [0, 0, 0], color: '#ffffff' }
+  { id: '1', position: [0, 0, 0], color: '#ffffff' },
 ];
 
 export const COLORS = [
-  '#ffffff', '#ff4444', '#ffbb33', '#00C851', '#33b5e5', '#2BBBAD', '#4285F4', '#aa66cc', '#212121'
+  '#ffffff',
+  '#ff4444',
+  '#ffbb33',
+  '#00C851',
+  '#33b5e5',
+  '#2BBBAD',
+  '#4285F4',
+  '#aa66cc',
+  '#212121',
 ];
 
 export const COLOR_NAMES: Record<string, string> = {
@@ -19,7 +27,7 @@ export const COLOR_NAMES: Record<string, string> = {
   '#2BBBAD': 'Cyan',
   '#4285F4': 'Blue',
   '#aa66cc': 'Purple',
-  '#212121': 'Black'
+  '#212121': 'Black',
 };
 
 export const STANDARD_BLOCKS: BlockDef[] = [
